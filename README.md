@@ -22,7 +22,7 @@
 
 ## 安装方法
 
-1. 克隆代码库：
+1. 克隆代码库：不会克隆就直接下载
     ```bash
     git clone https://github.com/Dilemmmmmmma/DC-Chat-bots
     ```
@@ -32,7 +32,7 @@
     pip install -r requirements.txt
     ```
 
-3. 根据需要更新脚本中的 `authorization_list` 和 `intervals` 变量，填入您的 Discord 机器人令牌和频道的活跃时间段。
+3. 根据需要更新脚本中的 `authorization_list` 和 `intervals` 变量，填入您的 Discord 机器人token和频道号和频道的活跃时间段。
 
 4. 运行机器人：
     ```bash
