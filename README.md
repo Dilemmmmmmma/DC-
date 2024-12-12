@@ -20,8 +20,10 @@
 
 ## 如何使用呢
 
+
 1.克隆仓库或者直接下载
-   ```bash
+
+   ```
    git clone https://github.com/Dilemmmmmmma/DC-Chat-bots
    ```
 
