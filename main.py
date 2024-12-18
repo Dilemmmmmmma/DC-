@@ -5,13 +5,13 @@ import time
 import threading
 import logging
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler("discord_bot.log", encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -43,13 +43,13 @@ def get_context(auth, channel_id):
                 logging.warning(f"频道 {channel_id} 没有找到有效的消息")
                 return "没有有效的消息"
         else:
-            logging.error(f"获取频道 {channel_id} 消息失败，状态码: {res.status_code}, 响应: {res.text}")
+            logging.error(f"获取频道 {channel_id} 消息失败，状态码: {res.status_code}, 响应: {json.dumps(res.json(), ensure_ascii=False)}")
             return f"获取消息失败 - {res.status_code}"
     except requests.exceptions.RequestException as e:
         logging.error(f"请求频道 {channel_id} 消息时发生错误: {e}")
-        return "请求失败"
+        return ""
 
-def chat(channel_id, authorization):
+def chat(channel_id, authorization, token_index):
     headers = {
         "Authorization": authorization,
         "Content-Type": "application/json",
@@ -68,61 +68,59 @@ def chat(channel_id, authorization):
         res = requests.post(url=url, headers=headers, data=json.dumps(msg), timeout=10)
         
         if res.status_code in [200, 201]:
-            logging.info(f"Token {authorization[:6]}... 成功向频道 {channel_id} 发送消息: {msg_content[:50]}...")
+            logging.info(f"Token {token_index+1}/15 ({authorization[:6]}...) 成功向频道 {channel_id} 发送消息: {msg_content[:50]}...")
         else:
-            logging.error(f"向频道 {channel_id} 发送消息失败，状态码: {res.status_code}, 响应: {res.text}")
+            logging.error(f"获取频道 {channel_id} 消息失败，状态码: {res.status_code}, 响应: {json.dumps(res.json(), ensure_ascii=False)}")
     except Exception as e:
         logging.error(f"向频道 {channel_id} 发送消息时出错: {e}")
 
-def get_random_time_in_range(start_hour, end_hour):
-    if not (0 <= start_hour <= 23 and 0 <= end_hour <= 23 and start_hour <= end_hour):
-        logging.error(f"无效的时间范围: {start_hour} 到 {end_hour}")
-        return None
-
-    start_time = datetime.now().replace(hour=start_hour, minute=0, second=0, microsecond=0)
-    end_time = datetime.now().replace(hour=end_hour, minute=0, second=0, microsecond=0)
-    
-    random_minutes = random.randint(0, int((end_time - start_time).total_seconds() // 60))
-    random_time = start_time + timedelta(minutes=random_minutes)
-    return random_time
-
-def chat_thread(channel_ids, all_tokens, start_hour, end_hour):
-    error_count = 0
-    max_errors = 5
-    
+def chat_thread(channel_id, tokens, start_hour, end_hour):
     while True:
-        try:
-            now = datetime.now()
-            if start_hour <= now.hour < end_hour:
-                for channel_id in channel_ids:
-                    selected_token = random.choice(all_tokens)
-                    random_time = get_random_time_in_range(now.hour, end_hour)
-                    
-                    if random_time is None:
-                        continue
-                    
-                    time_to_wait = max(0, (random_time - now).total_seconds())
-                    logging.info(f"频道 {channel_id} 将在 {random_time} 发送消息，等待 {time_to_wait} 秒")
-                    
-                    time.sleep(time_to_wait)
-                    chat(channel_id, selected_token)
-                    
-                    time.sleep(random.randint(900, 1800))
-            else:
-                next_start_time = now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
-                if now >= next_start_time:
-                    next_start_time += timedelta(days=1)
-                time_to_wait = (next_start_time - now).total_seconds()
-                logging.info(f"当前不在时间段内，将在 {next_start_time} 开始发送消息，等待 {time_to_wait} 秒")
-                time.sleep(time_to_wait)
-        except Exception as e:
-            error_count += 1
-            logging.error(f"发生错误（{error_count}/{max_errors}）: {e}")
-            time.sleep(5 * error_count)
+        now = datetime.now()
         
-        if error_count >= max_errors:
-            logging.critical(f"线程因连续错误超过{max_errors}次而退出")
-            break
+        if start_hour <= now.hour < end_hour:
+            # 使用线程池并发处理 tokens
+            with ThreadPoolExecutor(max_workers=len(tokens)) as executor:
+                futures = []
+                for i, token in enumerate(tokens):
+                    # 为每个 token 生成一个随机发送时间
+                    random_delay = random.uniform(1200, 7200)  # 随机延迟，最多1小时
+                    # 记录 token 的等待时长
+                    logging.info(f"Token {i+1} 将等待 {random_delay:.2f} 秒后向 {channel_id}发送消息")
+                    future = executor.submit(
+                        delayed_chat, 
+                        channel_id, 
+                        token, 
+                        i, 
+                        random_delay
+                    )
+                    futures.append(future)
+                
+                # 等待所有任务完成
+                for future in futures:
+                    future.result()
+                
+                # 在所有 token 发送完毕后，等待较长时间
+                time.sleep(random.randint(43200, 64800))
+        else:
+            # 如果不在时间范围内，计算下一个开始时间
+            next_start_time = now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
+            if now.hour >= end_hour:
+                next_start_time += timedelta(days=1)
+            
+            wait_time = (next_start_time - now).total_seconds()
+            logging.info(f"频道 {channel_id} 当前不在时间段内，将在 {next_start_time} 开始发送消息，等待 {wait_time} 秒")
+            time.sleep(wait_time)
+
+def send_message_with_delay(channel_id, token, delay=None):
+    # 如果没有传入延迟，则使用随机延迟
+    if delay is None:
+        delay = random.uniform(300, 900)
+    time.sleep(delay)  # 延迟
+    send_message(channel_id, token)  # 发送消息
+
+def delayed_chat(channel_id, token, token_index, delay):
+    send_message_with_delay(channel_id, token, delay)  # 统一使用延迟处理
 
 if __name__ == "__main__":
     intervals = {
@@ -140,7 +138,7 @@ if __name__ == "__main__":
     for channel_id, (start_hour, end_hour) in intervals.items():
         thread = threading.Thread(
             target=chat_thread, 
-            args=([channel_id], authorization_list, start_hour, end_hour),
+            args=(channel_id, authorization_list, start_hour, end_hour),
             name=f"Thread-{channel_id}"
         )
         thread.start()
