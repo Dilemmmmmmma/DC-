@@ -36,15 +36,25 @@
 
 4. 运行机器人：
     ```bash
-    python main.py
+    python main.py    #单号ai版则运行ai.py
     ```
 
 ## 配置说明
+### `AI的APIKEY`
+- m没有APIKEY可以在这里申请，免费用几千次：https://geekai.co/chat?invite_code=aNr6pP
+- "Authorization": "Bearer 用你的API Key替换这里",  # 用你的API Key替换这里
+- 把"用你的API Key替换这里"替换成你的API Key
+- 示例：
+    ```python
+    "Authorization": "Bearer sk-pjSZ6djslgjsdgkjflkjglksdjlk",
+    ```
+
 
 ### `authorization_list`
 - 就是Token，不知道怎么获取就谷歌一下
 - 包含 Discord 机器人令牌的列表，用于身份验证。
 - 确保每个令牌均有效，并对指定频道具有足够的权限。
+- 单号AI版只填1个token
 - 示例：
     ```python
     authorization_list = [
@@ -58,6 +68,7 @@
 ### `intervals`
 - 就是频道号 例如：https://discord.com/channels/123456789123/88888888888888 其中88888888888888就是频道号
 - 一个字典，映射频道 ID 到其活跃的时间范围。
+- 单号AI版可以多填
 - 示例：
     ```python
     intervals = {
@@ -66,7 +77,7 @@
     }
     ```
 
-### 日志
+### 日志(暂时取消)
 - 日志存储在 `discord_bot.log` 文件中，同时也会输出到控制台。
 - 日志格式包含时间戳、日志级别和消息内容。
 
