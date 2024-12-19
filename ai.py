@@ -48,13 +48,11 @@ def get_context(auth, chanel_id):
         res = requests.get(url=url, headers=header)
         if res.status_code == 200:
             result = json.loads(res.content)
-            result_list = []
-            for context in result:
-                if ('<') not in context['content']:
-                    if ('@') not in context['content']:
-                        if ('http') not in context['content']:
-                            if ('?') not in context['content']:
-                                result_list.append(context['content'])
+            result_list = [
+                context['content'] for context in result
+                if all(char not in context['content'] for char in ['<', '@', 'http', '?', '0x'])
+            ]
+
             if result_list:
 
                 return result_list
