@@ -43,7 +43,7 @@ def get_context(auth, chanel_id):
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36"
     }
-    url = f"https://discord.com/api/v10/channels/{chanel_id}/messages?limit=10"
+    url = f"https://discord.com/api/v10/channels/{chanel_id}/messages?limit=20"
     try:
         res = requests.get(url=url, headers=header)
         if res.status_code == 200:
@@ -52,7 +52,6 @@ def get_context(auth, chanel_id):
                 context['content'] for context in result
                 if all(char not in context['content'] for char in ['<', '@', 'http', '?', '0x'])
             ]
-
             if result_list:
 
                 return result_list
@@ -70,12 +69,12 @@ def get_context(auth, chanel_id):
 def generate_response(messages):
     gpt_api_url = "https://geekai.dev/api/v1/chat/completions"  # 更新为示例中的URL
     headers = {
-        "Authorization": "Bearer 用你的API Key替换这里",  # 用你的API Key替换这里
+        "Authorization": "Bearer sk-p123456789123456789",  # 用你的API Key替换这里
         "Content-Type": "application/json"
     }
 
     # 创建一个prompt，包含你想要的描述
-    prompt = f"我需要生成一个简短的回答，基于以下聊天内容。我是一个Web3的从业者，请在聊天内容的上下文基础上做出幽默而简短的回应，10字以内，不要标点符号，间隔用空格代替。消息内容：{messages}" #你也可以自定义prompt
+    prompt = f"你是一个来自中国的资深web3从业者，对各种撸毛词汇和行话了如指掌，精通各大交易所操作，交易经验丰富，能够根据不同社群氛围灵活调整聊天风格。你幽默风趣，轻松化解社群尴尬，擅长引导对话，精通语言且能与各国人交流，擅用web3行话、撸毛术语，随时带动气氛。现在在discord社群与陌生人互动，你只能看到20条聊天记录，并且你只能发10个字、符合逻辑、句子通顺、简洁直白的方式继续对话，保持活跃，避免尴尬。你的语言风格可以嘻哈、随意，但要与当前聊天内容相关，避免美式俚语和玩笑，不鼓励他人行为，避免使用任何标点符号，避免使用任何禁忌词汇（包括煽动性、色情、脚本和机器人相关内容） 。消息内容：{messages}"
 
     payload = {
         "model": "gpt-4o-mini",  # 请根据你的实际模型调整
@@ -93,10 +92,10 @@ def generate_response(messages):
             return gpt_response['choices'][0]['message']['content'].strip()
         else:
             logging.error(f"GPT-4o mini API 请求失败，状态码: {response.status_code}")
-            return "生成消息失败"
+            return ""
     except requests.exceptions.RequestException as e:
         logging.error(f"请求 GPT-4o mini 时发生错误: {e}")
-        return "请求失败"
+        return ""
 
 # 发送消息到指定的 Discord 频道
 def chat(chanel_list, authorization):
