@@ -1,4 +1,5 @@
 # Discord 聊天机器人多号版
+# ai.py为单号版
 
 此机器人用于在指定时间向多个 Discord 频道发送消息。它从指定频道获取消息，过滤后选择一条消息并发送回去。该机器人基于 Discord API 和 Python 的线程模块实现多频道并发操作。
 ![Proof](https://i.ibb.co/vQkwwmb/We-Chat-20241212200238.jpg)
